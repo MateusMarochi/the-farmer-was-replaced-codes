@@ -1,11 +1,11 @@
-"""Stubs that mirror the scripting API used by *The Farmer Was Replaced*.
-
-These helpers do not attempt to emulate any in-game behaviour. They exist so
-that strategy scripts contained in this repository can be executed as regular
-Python modules without immediately failing due to missing symbols. Each
-function exposes the signature documented on the official wiki and returns a
-simple placeholder value that matches the documented return type.
-"""
+# Stubs that mirror the scripting API used by *The Farmer Was Replaced*.
+#
+# These helpers do not attempt to emulate any in-game behaviour. They exist so
+# that strategy scripts contained in this repository can be executed as regular
+# Python modules without immediately failing due to missing symbols. Each
+# function exposes the signature documented on the official wiki and returns a
+# simple placeholder value that matches the documented return type.
+#
 
 from __future__ import annotations
 
@@ -15,7 +15,7 @@ import warnings
 
 
 class Direction(str, Enum):
-    """Cardinal movement directions for the drone."""
+    # Cardinal movement directions for the drone.
 
     EAST = "East"
     WEST = "West"
@@ -31,10 +31,11 @@ South = Direction.SOUTH
 
 
 class Entities(str, Enum):
-    """All entities that may occupy a farm tile."""
+    # All entities that may occupy a farm tile.
 
     BUSH = "Bush"
     CARROT = "Carrot"
+    CACTUS = "Cactus"
     GRASS = "Grass"
     HEDGE = "Hedge"
     DEAD_PUMPKIN = "Dead_Pumpkin"
@@ -42,19 +43,20 @@ class Entities(str, Enum):
     PUMPKIN = "Pumpkin"
     Pumpkin = "Pumpkin"
     SUNFLOWER = "Sunflower"
+    APPLE = "Apple"
     TREASURE = "Treasure"
     TREE = "Tree"
 
 
 class Grounds(str, Enum):
-    """Ground types that can be present beneath the drone."""
+    # Ground types that can be present beneath the drone.
 
     SOIL = "Soil"
     GRASSLAND = "Grassland"
 
 
 class Items(str, Enum):
-    """Inventory items available in the game."""
+    # Inventory items available in the game.
 
     CARROT = "Carrot"
     CARROT_SEED = "Carrot_Seed"
@@ -66,13 +68,15 @@ class Items(str, Enum):
     POWER = "Power"
     PUMPKIN = "Pumpkin"
     PUMPKIN_SEED = "Pumpkin_Seed"
+    WATER = "Water"
     SUNFLOWER_SEED = "Sunflower_Seed"
+    WEIRD_SUBSTANCE = "Weird_Substance"
     WATER_TANK = "Water_Tank"
     WOOD = "Wood"
 
 
 class Unlocks(str, Enum):
-    """Research unlocks and upgrades."""
+    # Research unlocks and upgrades.
 
     AUTO_UNLOCK = "Auto_Unlock"
     CARROTS = "Carrots"
@@ -100,10 +104,14 @@ class Unlocks(str, Enum):
 
 
 class Hats(str, Enum):
-    """Drone hats available for cosmetic changes."""
+    # Drone hats available for cosmetic changes.
 
     CARROT_HAT = "Carrot_Hat"
     DINOSAUR_HAT = "Dinosaur_Hat"
+    GRAY_HAT = "Gray_Hat"
+    GREEN_HAT = "Green_Hat"
+    PURPLE_HAT = "Purple_Hat"
+    TRAFFIC_CONE = "Traffic_Cone"
 
 
 def _stub_warning(name: str) -> None:
@@ -111,198 +119,205 @@ def _stub_warning(name: str) -> None:
 
 
 def can_harvest() -> bool:
-    """Return whether the entity under the drone is ready for harvesting."""
+    # Return whether the entity under the drone is ready for harvesting.
 
     _stub_warning("can_harvest")
     return False
 
 
+def can_move(direction: Direction | str) -> bool:
+    # Return whether the drone can move in *direction*.
+
+    _stub_warning("can_move")
+    return True
+
+
 def clear() -> None:
-    """Reset the field and position the drone at the origin."""
+    # Reset the field and position the drone at the origin.
 
     _stub_warning("clear")
 
 
 def do_a_flip() -> None:
-    """Trigger the drone flip animation."""
+    # Trigger the drone flip animation.
 
     _stub_warning("do_a_flip")
 
 
 def get_companion() -> Optional[List[object]]:
-    """Return the companion preference information for the current plant."""
+    # Return the companion preference information for the current plant.
 
     _stub_warning("get_companion")
     return None
 
 
 def get_cost(thing: object) -> Dict[object, int]:
-    """Return a cost breakdown for the given unlock, entity or item."""
+    # Return a cost breakdown for the given unlock, entity or item.
 
     _stub_warning("get_cost")
     return {}
 
 
 def get_entity_type() -> Optional[Entities]:
-    """Return the entity located under the drone, if any."""
+    # Return the entity located under the drone, if any.
 
     _stub_warning("get_entity_type")
     return None
 
 
 def get_ground_type() -> Grounds:
-    """Return the ground type under the drone."""
+    # Return the ground type under the drone.
 
     _stub_warning("get_ground_type")
     return Grounds.GRASSLAND
 
 
 def get_pos_x() -> int:
-    """Return the current x-coordinate of the drone."""
+    # Return the current x-coordinate of the drone.
 
     _stub_warning("get_pos_x")
     return 0
 
 
 def get_pos_y() -> int:
-    """Return the current y-coordinate of the drone."""
+    # Return the current y-coordinate of the drone.
 
     _stub_warning("get_pos_y")
     return 0
 
 
 def get_time() -> float:
-    """Return the elapsed game time in seconds."""
+    # Return the elapsed game time in seconds.
 
     _stub_warning("get_time")
     return 0.0
 
 
 def get_water() -> float:
-    """Return the soil water level beneath the drone (between 0 and 1)."""
+    # Return the soil water level beneath the drone (between 0 and 1).
 
     _stub_warning("get_water")
     return 0.0
 
 
 def get_world_size() -> int:
-    """Return the edge length of the square farm grid."""
+    # Return the edge length of the square farm grid.
 
     _stub_warning("get_world_size")
     return 1
 
 
 def harvest() -> bool:
-    """Harvest the entity under the drone and report if something was removed."""
+    # Harvest the entity under the drone and report if something was removed.
 
     _stub_warning("harvest")
     return False
 
 
-def measure() -> Optional[int]:
-    """Measure entity-specific metrics, such as sunflower petal counts."""
+def measure(direction: Optional[Direction | str] = None) -> Optional[int]:
+    # Measure entity-specific metrics, such as sunflower petal counts.
 
     _stub_warning("measure")
     return None
 
 
 def move(direction: Direction | str) -> bool:
-    """Move the drone a single tile in the requested direction."""
+    # Move the drone a single tile in the requested direction.
 
     _stub_warning("move")
     return False
 
 
 def num_drones() -> int:
-    """Return the number of drones currently active on the farm."""
+    # Return the number of drones currently active on the farm.
 
     _stub_warning("num_drones")
     return 1
 
 
 def num_items(item: Items) -> int:
-    """Return how many copies of *item* are currently in the inventory."""
+    # Return how many copies of *item* are currently in the inventory.
 
     _stub_warning("num_items")
     return 0
 
 
 def num_unlocked(thing: object) -> int:
-    """Return the unlock count for upgrades, entities, grounds or items."""
+    # Return the unlock count for upgrades, entities, grounds or items.
 
     _stub_warning("num_unlocked")
     return 0
 
 
 def plant(entity: Optional[Entities] = None) -> bool:
-    """Attempt to plant *entity* on the tile beneath the drone."""
+    # Attempt to plant *entity* on the tile beneath the drone.
 
     _stub_warning("plant")
     return False
 
 
 def quick_print(*values: object) -> None:
-    """Print values instantly to the output page without smoke text."""
+    # Print values instantly to the output page without smoke text.
 
     _stub_warning("quick_print")
 
 
 def spawn_drone(function) -> Optional[int]:
-    """Spawn a new drone to execute *function* and return its identifier."""
+    # Spawn a new drone to execute *function* and return its identifier.
 
     _stub_warning("spawn_drone")
     return None
 
 
 def wait_for(drone: Optional[int]):
-    """Wait for *drone* to finish execution and return its result."""
+    # Wait for *drone* to finish execution and return its result.
 
     _stub_warning("wait_for")
     return None
 
 
 def has_finished(drone: Optional[int]) -> bool:
-    """Return whether *drone* has finished running."""
+    # Return whether *drone* has finished running.
 
     _stub_warning("has_finished")
     return True
 
 
 def till() -> None:
-    """Toggle tilling of the ground beneath the drone."""
+    # Toggle tilling of the ground beneath the drone.
 
     _stub_warning("till")
 
 
 def max_drones() -> int:
-    """Return the maximum number of simultaneous drones allowed."""
+    # Return the maximum number of simultaneous drones allowed.
 
     _stub_warning("max_drones")
     return 1
 
 
 def timed_reset() -> None:
-    """Start a timed run and revert the farm to its previous state afterwards."""
+    # Start a timed run and revert the farm to its previous state afterwards.
 
     _stub_warning("timed_reset")
 
 
 def trade(item: Items, amount: Optional[int] = None) -> bool:
-    """Attempt to purchase one or more copies of an item."""
+    # Attempt to purchase one or more copies of an item.
 
     _stub_warning("trade")
     return False
 
 
 def unlock(unlockable: Unlocks) -> bool:
-    """Attempt to unlock or upgrade a research node."""
+    # Attempt to unlock or upgrade a research node.
 
     _stub_warning("unlock")
     return False
 
 
 def use_item(item: Items) -> bool:
-    """Consume one unit of *item*, if possible."""
+    # Consume one unit of *item*, if possible.
 
     _stub_warning("use_item")
     return False
@@ -316,6 +331,8 @@ __all__ = [
     "Unlocks",
     "Hats",
     "can_harvest",
+    "can_move",
+    "change_hat",
     "clear",
     "do_a_flip",
     "get_companion",
@@ -344,4 +361,32 @@ __all__ = [
     "trade",
     "unlock",
     "use_item",
+    "pet_the_piggy",
+    "set_world_size",
+    "swap",
 ]
+
+
+def pet_the_piggy() -> None:
+    # Pet the piggy companion.
+
+    _stub_warning("pet_the_piggy")
+
+
+def set_world_size(size: int) -> None:
+    # Set the simulated world size when running the scripts locally.
+
+    _stub_warning("set_world_size")
+
+
+def swap(direction: Direction | str) -> bool:
+    # Swap the entity under the drone with the neighbor in *direction*.
+
+    _stub_warning("swap")
+    return False
+
+
+def change_hat(hat: Hats) -> None:
+    # Change the current hat to *hat*.
+
+    _stub_warning("change_hat")

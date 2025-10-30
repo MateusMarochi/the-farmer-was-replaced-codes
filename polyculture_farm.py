@@ -1,104 +1,106 @@
-import plantacoes
-# =================== Policultura simplificada e compatível com o ambiente ===================
+# Coordinated polyculture routine with shared request queue.
 
-pedidos = []  # lista de tuplas (x, y, tipo)
+from directions import EAST, NORTH
+import plantacoes
+
+requests_queue = []
+
 
 def plant_bush_fallback():
-	if get_ground_type() != Grounds.Grassland:
-		till()
-	plant(Entities.Bush)
+    if get_ground_type() != Grounds.GRASSLAND:
+        till()
+    plant(Entities.BUSH)
 
-def plant_entity(ptype):
-	if ptype == Entities.Grass:
-		plantacoes.plant_grass()
-	elif ptype == Entities.Tree:
-		plantacoes.plant_tree()
-	elif ptype == Entities.Carrot:
-		plantacoes.plant_carrot()
-	elif ptype == Entities.Bush:
-		plant_bush_fallback()
-	else:
-		plant(ptype)
+
+def plant_entity(entity_type):
+    if entity_type == Entities.GRASS:
+        plantacoes.plant_grass()
+    elif entity_type == Entities.TREE:
+        plantacoes.plant_tree()
+    elif entity_type == Entities.CARROT:
+        plantacoes.plant_carrot()
+    elif entity_type == Entities.BUSH:
+        plant_bush_fallback()
+    else:
+        plant(entity_type)
+
 
 def probe_cycle(step):
-	mod = step % 4
-	if mod == 0:
-		return Entities.Grass
-	elif mod == 1:
-		return Entities.Tree
-	elif mod == 2:
-		return Entities.Carrot
-	else:
-		return Entities.Bush
+    remainder = step % 4
+    if remainder == 0:
+        return Entities.GRASS
+    if remainder == 1:
+        return Entities.TREE
+    if remainder == 2:
+        return Entities.CARROT
+    return Entities.BUSH
 
-def atender_pedidos_no_local():
-	x = get_pos_x()
-	y = get_pos_y()
-	encontrou = False
 
-	# percorre cópia da lista para poder remover enquanto itera
-	copia = []
-	for item in pedidos:
-		copia.append(item)
+def handle_requests_on_tile():
+    x_position = get_pos_x()
+    y_position = get_pos_y()
+    handled = False
+    copy_queue = []
+    index = 0
+    while index < len(requests_queue):
+        copy_queue.append(requests_queue[index])
+        index = index + 1
+    index = 0
+    while index < len(copy_queue):
+        request = copy_queue[index]
+        target_x, target_y, entity_type = request
+        if target_x == x_position and target_y == y_position:
+            plant_entity(entity_type)
+            if can_harvest():
+                harvest()
+            requests_queue.remove(request)
+            handled = True
+        index = index + 1
+    return handled
 
-	for (px, py, ptype) in copia:
-		if px == x and py == y:
-			plant_entity(ptype)
-			if can_harvest():
-				harvest()
-			pedidos.remove((px, py, ptype))  # remove apenas o atendido
-			encontrou = True
 
-	return encontrou
+def probe_and_record_request(step):
+    entity_type = probe_cycle(step)
+    plant_entity(entity_type)
+    companion = get_companion()
+    if companion != None:
+        target_type, position = companion
+        target_x = position[0]
+        target_y = position[1]
+        exists = False
+        index = 0
+        while index < len(requests_queue):
+            request = requests_queue[index]
+            if request[0] == target_x and request[1] == target_y:
+                exists = True
+            index = index + 1
+        if not exists:
+            requests_queue.append((target_x, target_y, target_type))
 
-def sondar_e_registrar_pedido(step):
-	especie = probe_cycle(step)
-	plant_entity(especie)
-	comp = get_companion()
 
-	if comp != None:
-		ptype, pos = comp
-		tx = pos[0]
-		ty = pos[1]
+def polyculture_scan():
+    field_size = get_world_size()
+    step = 0
+    column = 0
+    while column < field_size:
+        row = 0
+        while row < field_size:
+            if can_harvest():
+                harvest()
+            handled = handle_requests_on_tile()
+            if not handled:
+                probe_and_record_request(step)
+                step = step + 1
+            move(NORTH)
+            row = row + 1
+        move(EAST)
+        column = column + 1
 
-		# evita duplicar pedidos
-		existe = False
-		for (px, py, _) in pedidos:
-			if px == tx and py == ty:
-				existe = True
-
-		if not existe:
-			pedidos.append((tx, ty, ptype))
-
-def policultura_scan():
-	size = get_world_size()
-	step = 0
-
-	i = 0
-	while i < size:
-		j = 0
-		while j < size:
-			if can_harvest():
-				harvest()
-
-			# se esta posição foi pedida, atenda
-			handled = atender_pedidos_no_local()
-
-			# se não houve pedido, faz uma sonda para gerar possíveis companheiros
-			if not handled:
-				sondar_e_registrar_pedido(step)
-				step = step + 1
-
-			move(North)
-			j = j + 1
-
-		move(East)
-		i = i + 1
 
 def main():
-	while True:
-		# duas passagens ajudam a resolver todos os pedidos
-		policultura_scan()
-		policultura_scan()
+    while True:
+        polyculture_scan()
+        polyculture_scan()
+
 
 main()
