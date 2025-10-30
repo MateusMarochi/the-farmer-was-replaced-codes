@@ -63,24 +63,22 @@ def make_sunflower_worker(column_index, field_size):
 
 
 def deploy_sunflower_farm(field_size, drone_target):
-        column = 0
-        limit = min(field_size, drone_target)
-        while column < limit:
+        assigned_columns = min(field_size, drone_target)
+        column = 1
+        while column < assigned_columns:
                 runner = make_sunflower_worker(column, field_size)
                 drone = spawn_drone(runner)
                 if drone == None:
                         break
                 column = column + 1
-        return True
+        return assigned_columns
 
 
 def main():
         size = ensure_world_size(WORLD_SIZE)
         clear()
         deploy_sunflower_farm(size, DRONE_COUNT)
-        while True:
-                move_to_column(0)
-                move_to_row(0)
+        sunflower_column_worker(0, size)
 
 
 main()
