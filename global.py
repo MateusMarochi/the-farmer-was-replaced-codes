@@ -23,6 +23,13 @@ class Direction(str, Enum):
     SOUTH = "South"
 
 
+# Compatibility aliases mirroring in-game constant names
+East = Direction.EAST
+West = Direction.WEST
+North = Direction.NORTH
+South = Direction.SOUTH
+
+
 class Entities(str, Enum):
     """All entities that may occupy a farm tile."""
 
@@ -30,7 +37,10 @@ class Entities(str, Enum):
     CARROT = "Carrot"
     GRASS = "Grass"
     HEDGE = "Hedge"
+    DEAD_PUMPKIN = "Dead_Pumpkin"
+    Dead_Pumpkin = "Dead_Pumpkin"
     PUMPKIN = "Pumpkin"
+    Pumpkin = "Pumpkin"
     SUNFLOWER = "Sunflower"
     TREASURE = "Treasure"
     TREE = "Tree"
@@ -203,6 +213,13 @@ def move(direction: Direction | str) -> bool:
     return False
 
 
+def num_drones() -> int:
+    """Return the number of drones currently active on the farm."""
+
+    _stub_warning("num_drones")
+    return 1
+
+
 def num_items(item: Items) -> int:
     """Return how many copies of *item* are currently in the inventory."""
 
@@ -230,10 +247,38 @@ def quick_print(*values: object) -> None:
     _stub_warning("quick_print")
 
 
+def spawn_drone(function) -> Optional[int]:
+    """Spawn a new drone to execute *function* and return its identifier."""
+
+    _stub_warning("spawn_drone")
+    return None
+
+
+def wait_for(drone: Optional[int]):
+    """Wait for *drone* to finish execution and return its result."""
+
+    _stub_warning("wait_for")
+    return None
+
+
+def has_finished(drone: Optional[int]) -> bool:
+    """Return whether *drone* has finished running."""
+
+    _stub_warning("has_finished")
+    return True
+
+
 def till() -> None:
     """Toggle tilling of the ground beneath the drone."""
 
     _stub_warning("till")
+
+
+def max_drones() -> int:
+    """Return the maximum number of simultaneous drones allowed."""
+
+    _stub_warning("max_drones")
+    return 1
 
 
 def timed_reset() -> None:
@@ -285,11 +330,16 @@ __all__ = [
     "harvest",
     "measure",
     "move",
+    "num_drones",
     "num_items",
     "num_unlocked",
     "plant",
     "quick_print",
+    "spawn_drone",
+    "wait_for",
+    "has_finished",
     "till",
+    "max_drones",
     "timed_reset",
     "trade",
     "unlock",
