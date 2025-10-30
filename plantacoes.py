@@ -1,41 +1,52 @@
+# Helper planting routines shared by multiple strategies.
+
+
+def ensure_soil():
+    if get_ground_type() != Grounds.SOIL:
+        till()
+
+
+def ensure_grassland():
+    if get_ground_type() != Grounds.GRASSLAND:
+        till()
+
+
 def plant_grass():
-	if get_ground_type() != Grounds.Grassland:
-		till()
-	plant(Entities.Grass)
-		
+    ensure_grassland()
+    plant(Entities.GRASS)
+
+
 def plant_tree():
-	if get_ground_type() != Grounds.Grassland:
-		till()
-	plant(Entities.Tree)
-	if get_water() < 0.75:
-		use_item(Items.Water) 
-	
+    ensure_grassland()
+    plant(Entities.TREE)
+    if get_water() < 0.75:
+        use_item(Items.WATER)
+
+
 def plant_carrot():
-	if get_ground_type() != Grounds.Soil:
-		till()
-	plant(Entities.Carrot)
-	
+    ensure_soil()
+    plant(Entities.CARROT)
+
+
 def plant_pumpkin():
-	if get_ground_type() != Grounds.Soil:
-		till()
-	plant(Entities.Pumpkin)
-	
+    ensure_soil()
+    plant(Entities.PUMPKIN)
+
+
 def plant_sunflower():
-	if get_ground_type() != Grounds.Soil:
-		till()
-	plant(Entities.Sunflower)
-	if get_water() < 0.5:
-		use_item(Items.Water) 
+    ensure_soil()
+    plant(Entities.SUNFLOWER)
+    if get_water() < 0.5:
+        use_item(Items.WATER)
+
 
 def plant_cactus():
-	if get_ground_type() != Grounds.Soil:
-		till()
-	plant(Entities.Cactus)
-		
+    ensure_soil()
+    plant(Entities.CACTUS)
+
+
 def plant_apple():
-	if get_ground_type() != Grounds.Soil:
-		till()
-	plant(Entities.Apple)
-	if get_water() < 0.5:
-		use_item(Items.Water) 
-		
+    ensure_soil()
+    plant(Entities.APPLE)
+    if get_water() < 0.5:
+        use_item(Items.WATER)

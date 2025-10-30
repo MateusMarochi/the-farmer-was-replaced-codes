@@ -1,183 +1,160 @@
+# Parallel polyculture routine with reserved sunflower columns.
+
 import plantacoes
 
-# =================== Policultura simplificada e compatível com o ambiente ===================
+requests_queue = []
 
-pedidos = []  # lista de tuplas (x, y, tipo)
 
 def plant_bush_fallback():
-	if get_ground_type() != Grounds.Grassland:
-		till()
-	plant(Entities.Bush)
+    if get_ground_type() != Grounds.GRASSLAND:
+        till()
+    plant(Entities.BUSH)
 
-def plant_entity(ptype):
-	if ptype == Entities.Grass:
-		plantacoes.plant_grass()
-	elif ptype == Entities.Tree:
-		plantacoes.plant_tree()
-	elif ptype == Entities.Carrot:
-		plantacoes.plant_carrot()
-	elif ptype == Entities.Bush:
-		plant_bush_fallback()
-	elif ptype == Entities.Sunflower:              # <-- suporte explícito a sunflower
-		plantacoes.plant_sunflower()
-	else:
-		plant(ptype)
+
+def plant_entity(entity_type):
+    if entity_type == Entities.GRASS:
+        plantacoes.plant_grass()
+    elif entity_type == Entities.TREE:
+        plantacoes.plant_tree()
+    elif entity_type == Entities.CARROT:
+        plantacoes.plant_carrot()
+    elif entity_type == Entities.BUSH:
+        plant_bush_fallback()
+    elif entity_type == Entities.SUNFLOWER:
+        plantacoes.plant_sunflower()
+    else:
+        plant(entity_type)
+
 
 def probe_cycle(step):
-	mod = step % 4
-	if mod == 0:
-		return Entities.Grass
-	elif mod == 1:
-		return Entities.Tree
-	elif mod == 2:
-		return Entities.Carrot
-	else:
-		return Entities.Bush
+    remainder = step % 4
+    if remainder == 0:
+        return Entities.GRASS
+    if remainder == 1:
+        return Entities.TREE
+    if remainder == 2:
+        return Entities.CARROT
+    return Entities.BUSH
 
-def atender_pedidos_no_local():
-	x = get_pos_x()
-	y = get_pos_y()
-	encontrou = False
 
-	copia = []
-	for item in pedidos:
-		copia.append(item)
+def handle_requests_on_tile():
+    x_position = get_pos_x()
+    y_position = get_pos_y()
+    handled = False
+    copy_queue = []
+    index = 0
+    while index < len(requests_queue):
+        copy_queue.append(requests_queue[index])
+        index = index + 1
+    index = 0
+    while index < len(copy_queue):
+        request = copy_queue[index]
+        target_x, target_y, entity_type = request
+        if target_x == x_position and target_y == y_position:
+            plant_entity(entity_type)
+            if can_harvest():
+                harvest()
+            requests_queue.remove(request)
+            handled = True
+        index = index + 1
+    return handled
 
-	for triple in copia:
-		(px, py, ptype) = triple
-		if px == x and py == y:
-			plant_entity(ptype)
-			if can_harvest():
-				harvest()
-			pedidos.remove(triple)
-			encontrou = True
 
-	return encontrou
+def probe_and_record_request(step):
+    entity_type = probe_cycle(step)
+    plant_entity(entity_type)
+    companion = get_companion()
+    if companion != None:
+        target_type, position = companion
+        target_x = position[0]
+        target_y = position[1]
+        exists = False
+        index = 0
+        while index < len(requests_queue):
+            request = requests_queue[index]
+            if request[0] == target_x and request[1] == target_y:
+                exists = True
+            index = index + 1
+        if not exists:
+            requests_queue.append((target_x, target_y, target_type))
 
-def sondar_e_registrar_pedido(step):
-	especie = probe_cycle(step)
-	plant_entity(especie)
-	comp = get_companion()
 
-	if comp != None:
-		ptype, pos = comp
-		tx = pos[0]
-		ty = pos[1]
+def move_to(target_x, target_y):
+    while get_pos_x() < target_x:
+        move(Direction.EAST)
+    while get_pos_x() > target_x:
+        move(Direction.WEST)
+    while get_pos_y() < target_y:
+        move(Direction.NORTH)
+    while get_pos_y() > target_y:
+        move(Direction.SOUTH)
 
-		# evita duplicar pedidos
-		existe = False
-		for triple in pedidos:
-			(px, py, _) = triple
-			if px == tx and py == ty:
-				existe = True
 
-		if not existe:
-			pedidos.append((tx, ty, ptype))
+def process_tile(step_ref):
+    if can_harvest():
+        harvest()
+    field_size = get_world_size()
+    x_position = get_pos_x()
+    if x_position >= field_size - 2:
+        plant_entity(Entities.SUNFLOWER)
+        return
+    handled = handle_requests_on_tile()
+    if not handled:
+        probe_and_record_request(step_ref[0])
+        step_ref[0] = step_ref[0] + 1
 
-# ------------------- Movimentação utilitária -------------------
 
-def move_to(x_target, y_target):
-	x = get_pos_x()
-	y = get_pos_y()
+def column_pair_worker(start_column):
+    field_size = get_world_size()
+    move_to(start_column, 0)
+    step_ref = [0]
+    while True:
+        row = 0
+        while row < field_size:
+            process_tile(step_ref)
+            if row < field_size - 1:
+                move(Direction.NORTH)
+            row = row + 1
+        move(Direction.EAST)
+        row = 0
+        while row < field_size:
+            process_tile(step_ref)
+            if row < field_size - 1:
+                move(Direction.SOUTH)
+            row = row + 1
+        move(Direction.WEST)
 
-	while x < x_target:
-		move(East)
-		x = get_pos_x()
-	while x > x_target:
-		move(West)
-		x = get_pos_x()
 
-	while y < y_target:
-		move(North)
-		y = get_pos_y()
-	while y > y_target:
-		move(South)
-		y = get_pos_y()
+def make_runner(start_column):
+    def run():
+        column_pair_worker(start_column)
 
-# ------------------- Trabalho em célula (colhe/atende/sonda) -------------------
+    return run
 
-def processar_celula(step_ref):
-	# sempre colhe antes se possível
-	if can_harvest():
-		harvest()
 
-	# =================== RESERVA DAS DUAS ÚLTIMAS COLUNAS PARA SUNFLOWERS ===================
-	size = get_world_size()
-	x = get_pos_x()
-	if x >= size - 2:  # colunas (size-2) e (size-1)
-		plant_entity(Entities.Sunflower)
-		# nessas colunas não participamos do sistema de pedidos/sondagens
-		return
-	# ========================================================================================
+def orchestrate_workers():
+    field_size = get_world_size()
+    drones = []
+    max_available = max_drones()
+    if max_available < 1:
+        max_available = 1
+    target_pairs = field_size // 2
+    if target_pairs > max_available:
+        target_pairs = max_available
+    index = 0
+    while index < target_pairs:
+        start_column = index * 2
+        runner = make_runner(start_column)
+        drone = spawn_drone(runner)
+        if drone != None:
+            drones.append(drone)
+        index = index + 1
+    while True:
+        move_to(0, 0)
 
-	# fora das duas últimas colunas, segue a lógica normal de policultura coordenada
-	handled = atender_pedidos_no_local()
-	if not handled:
-		sondar_e_registrar_pedido(step_ref[0])
-		step_ref[0] = step_ref[0] + 1
-
-# ------------------- Worker: cobre um PAR de colunas (x, x+1) -------------------
-
-def worker_duas_colunas(col_inicio):
-	size = get_world_size()
-	move_to(col_inicio, 0)
-	step_ref = [0]
-
-	while True:
-		# Sobe na coluna col_inicio
-		j = 0
-		while j < size:
-			processar_celula(step_ref)
-			if j < size - 1:
-				move(North)
-			j = j + 1
-
-		# Vai para a coluna à direita (col_inicio + 1)
-		move(East)
-
-		# Desce nessa coluna
-		j = 0
-		while j < size:
-			processar_celula(step_ref)
-			if j < size - 1:
-				move(South)
-			j = j + 1
-
-		# Volta para a coluna inicial
-		move(West)
-
-# ------------------- Envoltório para spawn_drone (sem lambda) -------------------
-
-def make_runner_duas_colunas(col_inicio):
-	def run():
-		return worker_duas_colunas(col_inicio)
-	return run
-
-# ------------------- Orquestração: 11 drones intercalados e loop para todos -------------------
-
-def iniciar_11_drones_em_22x22():
-	size = get_world_size()
-	# segurança: esperamos 22x22
-	if size != 22:
-		pass
-
-	drones = []
-	i = 0
-	while i < 11:
-		col = i * 2  # 0, 2, 4, ..., 20 (20 e 21 serão só sunflowers via processar_celula)
-		func = make_runner_duas_colunas(col)
-		d = spawn_drone(func)
-		if d != None:
-			drones.append(d)
-		i = i + 1
-
-	while True:
-		move_to(0, 0)
-		move_to(0, 0)
-
-# ------------------- main -------------------
 
 def main():
-	iniciar_11_drones_em_22x22()
+    orchestrate_workers()
+
 
 main()

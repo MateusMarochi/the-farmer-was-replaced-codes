@@ -1,24 +1,22 @@
+# Parallel cactus sorting routine with consistent naming and helpers.
+
 import plantacoes
 
-WORLD_SIZE = 32
 PREFERRED_DRONES = (32, 16)
-VERTICAL_SWEEP_PASSES = WORLD_SIZE // 2
-HORIZONTAL_SWEEP_PASSES = WORLD_SIZE // 2
 PETS_PER_CYCLE = 10
 
-ACTIVE_STRIDE = 1
-
-
-def ensure_world_size():
-    if "set_world_size" in globals():
-        set_world_size(WORLD_SIZE)
-    return get_world_size()
+_active_stride = 1
 
 
 def choose_worker_count(max_available, field_size):
-    for preferred in PREFERRED_DRONES:
+    # Return the desired number of workers based on availability and size.
+
+    index = 0
+    while index < len(PREFERRED_DRONES):
+        preferred = PREFERRED_DRONES[index]
         if max_available >= preferred and field_size >= preferred:
             return preferred
+        index = index + 1
     if max_available < 1:
         return 1
     if field_size < 1:
@@ -29,41 +27,56 @@ def choose_worker_count(max_available, field_size):
 
 
 def set_active_stride(value):
-    global ACTIVE_STRIDE
-    ACTIVE_STRIDE = max(1, value)
+    # Store the stride shared by all workers.
+
+    global _active_stride
+    if value < 1:
+        _active_stride = 1
+        return
+    _active_stride = value
 
 
 def get_active_stride():
-    return ACTIVE_STRIDE
+    # Return the stride shared by all workers.
+
+    return _active_stride
 
 
 def move_to_column(target_column):
+    # Move horizontally until reaching *target_column*.
+
     while get_pos_x() < target_column:
-        move(East)
+        move(Direction.EAST)
     while get_pos_x() > target_column:
-        move(West)
+        move(Direction.WEST)
 
 
 def move_to_row(target_row):
+    # Move vertically until reaching *target_row*.
+
     while get_pos_y() < target_row:
-        move(North)
+        move(Direction.NORTH)
     while get_pos_y() > target_row:
-        move(South)
+        move(Direction.SOUTH)
 
 
 def ensure_cactus_here():
-    if get_entity_type() != Entities.Cactus:
+    # Plant a cactus on the current tile if necessary.
+
+    if get_entity_type() != Entities.CACTUS:
         if can_harvest():
             harvest()
         plantacoes.plant_cactus()
 
 
 def safe_measure(direction=None):
-    if direction is None:
+    # Measure the tile in *direction* or the current tile when omitted.
+
+    if direction == None:
         value = measure()
     else:
         value = measure(direction)
-    if value is None:
+    if value == None:
         return -1
     return value
 
@@ -87,27 +100,27 @@ def has_west():
 def compare_vertical(field_size):
     current_value = safe_measure()
     if has_north(field_size):
-        north_value = safe_measure(North)
+        north_value = safe_measure(Direction.NORTH)
         if current_value > north_value:
-            swap(North)
+            swap(Direction.NORTH)
             current_value = safe_measure()
     if has_south():
-        south_value = safe_measure(South)
+        south_value = safe_measure(Direction.SOUTH)
         if current_value < south_value:
-            swap(South)
+            swap(Direction.SOUTH)
 
 
 def compare_horizontal(field_size):
     current_value = safe_measure()
     if has_east(field_size):
-        east_value = safe_measure(East)
+        east_value = safe_measure(Direction.EAST)
         if current_value > east_value:
-            swap(East)
+            swap(Direction.EAST)
             current_value = safe_measure()
     if has_west():
-        west_value = safe_measure(West)
+        west_value = safe_measure(Direction.WEST)
         if current_value < west_value:
-            swap(West)
+            swap(Direction.WEST)
 
 
 def vertical_pass(field_size):
@@ -116,13 +129,13 @@ def vertical_pass(field_size):
         ensure_cactus_here()
         compare_vertical(field_size)
         if has_north(field_size):
-            move(North)
-            steps_up += 1
+            move(Direction.NORTH)
+            steps_up = steps_up + 1
         else:
             break
     while steps_up > 0:
-        move(South)
-        steps_up -= 1
+        move(Direction.SOUTH)
+        steps_up = steps_up - 1
 
 
 def horizontal_pass(field_size):
@@ -131,23 +144,33 @@ def horizontal_pass(field_size):
         ensure_cactus_here()
         compare_horizontal(field_size)
         if has_east(field_size):
-            move(East)
-            steps_east += 1
+            move(Direction.EAST)
+            steps_east = steps_east + 1
         else:
             break
     while steps_east > 0:
-        move(West)
-        steps_east -= 1
+        move(Direction.WEST)
+        steps_east = steps_east - 1
 
 
 def sort_column(field_size):
-    for _ in range(VERTICAL_SWEEP_PASSES):
+    passes = field_size // 2
+    if passes < 1:
+        passes = 1
+    index = 0
+    while index < passes:
         vertical_pass(field_size)
+        index = index + 1
 
 
 def sort_row(field_size):
-    for _ in range(HORIZONTAL_SWEEP_PASSES):
+    passes = field_size // 2
+    if passes < 1:
+        passes = 1
+    index = 0
+    while index < passes:
         horizontal_pass(field_size)
+        index = index + 1
 
 
 def trigger_chain_harvest():
@@ -162,7 +185,7 @@ def run_vertical_cycle(start_column, stride, field_size):
         move_to_column(column)
         move_to_row(0)
         sort_column(field_size)
-        column += stride
+        column = column + stride
     move_to_column(0)
     move_to_row(0)
 
@@ -173,7 +196,7 @@ def run_horizontal_cycle(start_row, stride, field_size):
         move_to_row(row)
         move_to_column(0)
         sort_row(field_size)
-        row += stride
+        row = row + stride
     move_to_row(0)
     move_to_column(0)
 
@@ -186,18 +209,21 @@ def worker_loop(start_index, field_size):
         move_to_row(0)
         move_to_column(0)
         trigger_chain_harvest()
-        for _ in range(PETS_PER_CYCLE):
+        pets = 0
+        while pets < PETS_PER_CYCLE:
             pet_the_piggy()
+            pets = pets + 1
 
 
 def make_worker(start_index, field_size):
     def run():
         worker_loop(start_index, field_size)
+
     return run
 
 
 def main():
-    field_size = ensure_world_size()
+    field_size = get_world_size()
     max_available = max_drones()
     worker_target = choose_worker_count(max_available, field_size)
     set_active_stride(worker_target)
@@ -205,10 +231,10 @@ def main():
     while active_workers < worker_target:
         worker = make_worker(active_workers, field_size)
         drone = spawn_drone(worker)
-        if drone is None:
+        if drone == None:
             set_active_stride(active_workers)
             break
-        active_workers += 1
+        active_workers = active_workers + 1
     worker_loop(0, field_size)
 
 

@@ -1,192 +1,172 @@
-# ------------------- Geração do labirinto (SEM chamar hunt aqui) -------------------
+# Extended treasure hunt with heading spins and straight segments.
+
 
 def create_maze():
-	clear()
-	plant(Entities.Bush)
-	substance = get_world_size() * 2 ** (num_unlocked(Unlocks.Mazes) - 1)
-	use_item(Items.Weird_Substance, substance)
-	return True
+    clear()
+    plant(Entities.BUSH)
+    unlock_level = num_unlocked(Unlocks.MAZES)
+    amount = get_world_size() * 2 ** (unlock_level - 1)
+    use_item(Items.WEIRD_SUBSTANCE, amount)
 
-# ------------------- Helpers de direção (sem lambda/ternário) -------------------
 
-def next_cw(d):
-	if d == North:
-		return East
-	elif d == East:
-		return South
-	elif d == South:
-		return West
-	elif d == West:
-		return North
-	return d
+def next_clockwise(direction):
+    if direction == Direction.NORTH:
+        return Direction.EAST
+    if direction == Direction.EAST:
+        return Direction.SOUTH
+    if direction == Direction.SOUTH:
+        return Direction.WEST
+    if direction == Direction.WEST:
+        return Direction.NORTH
+    return direction
 
-def next_ccw(d):
-	if d == North:
-		return West
-	elif d == West:
-		return South
-	elif d == South:
-		return East
-	elif d == East:
-		return North
-	return d
 
-# ------------------- Algoritmo BASE da caça (worker do drone) -------------------
-# Parâmetros extras, simples:
-#   start_spin  -> 0..3 giros de 90° antes de começar (espalha heading)
-#   turn_every  -> só vira após este número de MOVES bem-sucedidos (>=1)
-# Mantém:
-#   start_dir, prefer_cw, warmup
+def next_counter_clockwise(direction):
+    if direction == Direction.NORTH:
+        return Direction.WEST
+    if direction == Direction.WEST:
+        return Direction.SOUTH
+    if direction == Direction.SOUTH:
+        return Direction.EAST
+    if direction == Direction.EAST:
+        return Direction.NORTH
+    return direction
 
-def treasure_hunt_worker(start_dir, prefer_cw, warmup, start_spin, turn_every):
-	dir = start_dir
 
-	# giros iniciais (espalha heading)
-	s0 = 0
-	while s0 < start_spin:
-		if prefer_cw:
-			dir = next_cw(dir)
-		else:
-			dir = next_ccw(dir)
-		s0 = s0 + 1
+def treasure_hunt_worker(
+    start_direction,
+    prefer_clockwise,
+    warmup_steps,
+    start_spin,
+    turn_every,
+):
+    direction = start_direction
+    spin_step = 0
+    while spin_step < start_spin:
+        if prefer_clockwise:
+            direction = next_clockwise(direction)
+        else:
+            direction = next_counter_clockwise(direction)
+        spin_step = spin_step + 1
+    warmup_index = 0
+    while warmup_index < warmup_steps:
+        move(direction)
+        warmup_index = warmup_index + 1
+    last_x = get_pos_x()
+    last_y = get_pos_y()
+    moves_since_turn = 0
+    while True:
+        move(direction)
+        current_x = get_pos_x()
+        current_y = get_pos_y()
+        if last_x == current_x and last_y == current_y:
+            if prefer_clockwise:
+                direction = next_clockwise(direction)
+            else:
+                direction = next_counter_clockwise(direction)
+            move(direction)
+            pushed_x = get_pos_x()
+            pushed_y = get_pos_y()
+            if pushed_x != last_x or pushed_y != last_y:
+                last_x = pushed_x
+                last_y = pushed_y
+                moves_since_turn = 1
+                if moves_since_turn >= turn_every:
+                    if prefer_clockwise:
+                        direction = next_counter_clockwise(direction)
+                    else:
+                        direction = next_clockwise(direction)
+                    moves_since_turn = 0
+        else:
+            last_x = current_x
+            last_y = current_y
+            moves_since_turn = moves_since_turn + 1
+            if moves_since_turn >= turn_every:
+                if prefer_clockwise:
+                    direction = next_counter_clockwise(direction)
+                else:
+                    direction = next_clockwise(direction)
+                moves_since_turn = 0
+        if get_entity_type() == Entities.TREASURE:
+            harvest()
+            return True
 
-	# aquecimento simples: anda alguns passos na direção atual
-	s = 0
-	while s < warmup:
-		move(dir)
-		s = s + 1
 
-	x = get_pos_x()
-	y = get_pos_y()
+def make_runner(
+    start_direction, prefer_clockwise, warmup_steps, start_spin, turn_every
+):
+    def run():
+        return treasure_hunt_worker(
+            start_direction,
+            prefer_clockwise,
+            warmup_steps,
+            start_spin,
+            turn_every,
+        )
 
-	moves_since_turn = 0  # controla quando aplicar a virada complementar
+    return run
 
-	while True:
-		move(dir)
-
-		x2 = get_pos_x()
-		y2 = get_pos_y()
-
-		if x == x2 and y == y2:
-			# BLOQUEADO -> vira para a parede preferida
-			if prefer_cw:
-				dir = next_cw(dir)
-			else:
-				dir = next_ccw(dir)
-
-			# Empurrão pós-bloqueio: tenta um passo imediato após girar
-			move(dir)
-			xb = get_pos_x()
-			yb = get_pos_y()
-			if xb != x or yb != y:
-				# saiu do lugar; atualiza e zera o contador de reta
-				x = xb
-				y = yb
-				moves_since_turn = 1  # já contamos esse avanço
-				# aplica a virada complementar apenas quando atingir turn_every
-				if moves_since_turn >= turn_every:
-					if prefer_cw:
-						dir = next_ccw(dir)
-					else:
-						dir = next_cw(dir)
-					moves_since_turn = 0
-		else:
-			# MOVEU -> atualiza e contabiliza o avanço reto
-			x = x2
-			y = y2
-			moves_since_turn = moves_since_turn + 1
-
-			if moves_since_turn >= turn_every:
-				# aplica a virada complementar padrão
-				if prefer_cw:
-					dir = next_ccw(dir)
-				else:
-					dir = next_cw(dir)
-				moves_since_turn = 0
-
-		if get_entity_type() == Entities.Treasure:
-			harvest()
-			return True
-
-# ------------------- Envoltório para spawn_drone (sem lambda) -------------------
-
-def make_runner(start_dir, prefer_cw, warmup, start_spin, turn_every):
-	# Retorna a função que o drone deve executar com os parâmetros fixados
-	def run():
-		return treasure_hunt_worker(start_dir, prefer_cw, warmup, start_spin, turn_every)
-	return run
-
-# ------------------- Coordenador paralelo: primeiro que terminar ganha -------------------
-
-NUM_DRONES = 8  # ajuste conforme quiser
 
 def treasure_hunt_parallel():
-	drones = []
+    drone_limit = max_drones()
+    if drone_limit < 1:
+        drone_limit = 1
+    drones = []
+    index = 0
+    while index < drone_limit:
+        remainder = index % 4
+        if remainder == 0:
+            base_direction = Direction.WEST
+        elif remainder == 1:
+            base_direction = Direction.NORTH
+        elif remainder == 2:
+            base_direction = Direction.EAST
+        else:
+            base_direction = Direction.SOUTH
+        if index >= 4:
+            start_direction = next_clockwise(base_direction)
+        else:
+            start_direction = base_direction
+        if index % 2 == 0:
+            prefer_clockwise = False
+        else:
+            prefer_clockwise = True
+        warmup_steps = index % 4
+        start_spin = (index // 2) % 4
+        if index % 3 == 0:
+            turn_every = 1
+        elif index % 3 == 1:
+            turn_every = 2
+        else:
+            turn_every = 3
+        runner = make_runner(
+            start_direction,
+            prefer_clockwise,
+            warmup_steps,
+            start_spin,
+            turn_every,
+        )
+        drone = spawn_drone(runner)
+        if drone != None:
+            drones.append(drone)
+        index = index + 1
+    found = False
+    while not found:
+        scan_index = 0
+        while scan_index < len(drones):
+            drone = drones[scan_index]
+            if drone != None and has_finished(drone):
+                result = wait_for(drone)
+                if result:
+                    found = True
+                    break
+            scan_index = scan_index + 1
 
-	i = 0
-	while i < NUM_DRONES:
-		# Direções iniciais: W,N,E,S e rotaciona no segundo bloco de 4
-		if i % 4 == 0:
-			base_dir = West
-		elif i % 4 == 1:
-			base_dir = North
-		elif i % 4 == 2:
-			base_dir = East
-		else:
-			base_dir = South
-
-		if i >= 4:
-			start_dir = next_cw(base_dir)
-		else:
-			start_dir = base_dir
-
-		# alterna preferência de giro para variar o "wall follower"
-		if i % 2 == 0:
-			prefer_cw = False   # esquerda (bloq CCW, move CW)
-		else:
-			prefer_cw = True    # direita (bloq CW, move CCW)
-
-		# warmup pequeno e diferente por drone
-		warmup = i % 4  # 0..3
-
-		# novos parâmetros simples:
-		start_spin = (i // 2) % 4   # 0..3 (muda heading inicial com giros)
-		# turn_every: 1 mantém base; 2 ou 3 dá mais reta antes de virar
-		if i % 3 == 0:
-			turn_every = 1
-		elif i % 3 == 1:
-			turn_every = 2
-		else:
-			turn_every = 3
-
-		func = make_runner(start_dir, prefer_cw, warmup, start_spin, turn_every)
-		d = spawn_drone(func)
-		if d != None:
-			drones.append(d)
-		i = i + 1
-
-	found = False
-	while not found:
-		j = 0
-		while j < len(drones):
-			d = drones[j]
-			if d != None and has_finished(d):
-				res = wait_for(d)
-				if res:
-					found = True
-					break
-			j = j + 1
-
-	return True
-
-# ------------------- Loop principal -------------------
 
 def main():
-	while True:
-		ok = create_maze()
-		if ok:
-			got = treasure_hunt_parallel()
-			if got:
-				continue
+    while True:
+        create_maze()
+        treasure_hunt_parallel()
+
 
 main()

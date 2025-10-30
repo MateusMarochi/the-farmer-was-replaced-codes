@@ -1,43 +1,67 @@
-def dinosaur_safe_move(direction):
-	# Move in the given direction if possible.
-	# If movement is blocked, temporarily change hats as a workaround.
-	
-	if can_move(direction):
-		move(direction)
-	else:
-		change_hat(Hats.Carrot_Hat)
-		change_hat(Hats.Dinosaur_Hat)
+# Dinosaur hat sweep strategy with consistent movement helpers.
 
-clear()
-change_hat(Hats.Dinosaur_Hat)
-n = get_world_size()
-while True:
- for x in range(n):
-  # decide vertical target for this column
-  if x % 2 == 0:
-   target_y = n - 1   # even column index: go to the very top
-  else:
-   target_y = 1       # odd column index: go down but leave row 0 free
- 
-  # move vertically until we reach target_y
-  while get_pos_y() != target_y:
-   if target_y > get_pos_y():
-	dinosaur_safe_move(North)
-   else:
-	dinosaur_safe_move(South)
- 
-  # after finishing the column, move east if there are more columns
-  if x < n - 1:
-   move(East)
- 
- # finished scanning all columns
- # return to origin using the open bottom row y=0
- # first move down to y=0 (if not already there)
- while get_pos_y() != 0:
-  dinosaur_safe_move(South)
- 
- # then move west back to x=0
- while get_pos_x() != 0:
-  dinosaur_safe_move(West)
- 
- # now at (0,0)
+
+def dinosaur_safe_move(direction):
+    # Move in *direction* or toggle hats when blocked.
+
+    if can_move(direction):
+        move(direction)
+        return
+    change_hat(Hats.CARROT_HAT)
+    change_hat(Hats.DINOSAUR_HAT)
+
+
+def travel_vertical(target_row):
+    # Travel vertically until reaching *target_row*.
+
+    while get_pos_y() != target_row:
+        if target_row > get_pos_y():
+            dinosaur_safe_move(Direction.NORTH)
+        else:
+            dinosaur_safe_move(Direction.SOUTH)
+
+
+def travel_horizontal(target_column):
+    # Travel horizontally until reaching *target_column*.
+
+    while get_pos_x() != target_column:
+        if target_column > get_pos_x():
+            dinosaur_safe_move(Direction.EAST)
+        else:
+            dinosaur_safe_move(Direction.WEST)
+
+
+def sweep_columns(field_size):
+    # Snake through every column of the field.
+
+    column_index = 0
+    while column_index < field_size:
+        if column_index % 2 == 0:
+            target_row = field_size - 1
+        else:
+            target_row = 1
+        travel_vertical(target_row)
+        if column_index < field_size - 1:
+            dinosaur_safe_move(Direction.EAST)
+        column_index = column_index + 1
+
+
+def return_to_origin():
+    # Return to position (0, 0).
+
+    travel_vertical(0)
+    travel_horizontal(0)
+
+
+def main():
+    # Execute the endless dinosaur sweep.
+
+    clear()
+    change_hat(Hats.DINOSAUR_HAT)
+    field_size = get_world_size()
+    while True:
+        sweep_columns(field_size)
+        return_to_origin()
+
+
+main()
