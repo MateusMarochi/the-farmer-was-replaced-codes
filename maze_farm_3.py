@@ -1,5 +1,7 @@
 # Extended treasure hunt with heading spins and straight segments.
 
+from directions import EAST, NORTH, SOUTH, WEST
+
 
 def create_maze():
     clear()
@@ -10,26 +12,26 @@ def create_maze():
 
 
 def next_clockwise(direction):
-    if direction == Direction.NORTH:
-        return Direction.EAST
-    if direction == Direction.EAST:
-        return Direction.SOUTH
-    if direction == Direction.SOUTH:
-        return Direction.WEST
-    if direction == Direction.WEST:
-        return Direction.NORTH
+    if direction == NORTH:
+        return EAST
+    if direction == EAST:
+        return SOUTH
+    if direction == SOUTH:
+        return WEST
+    if direction == WEST:
+        return NORTH
     return direction
 
 
 def next_counter_clockwise(direction):
-    if direction == Direction.NORTH:
-        return Direction.WEST
-    if direction == Direction.WEST:
-        return Direction.SOUTH
-    if direction == Direction.SOUTH:
-        return Direction.EAST
-    if direction == Direction.EAST:
-        return Direction.NORTH
+    if direction == NORTH:
+        return WEST
+    if direction == WEST:
+        return SOUTH
+    if direction == SOUTH:
+        return EAST
+    if direction == EAST:
+        return NORTH
     return direction
 
 
@@ -116,13 +118,13 @@ def treasure_hunt_parallel():
     while index < drone_limit:
         remainder = index % 4
         if remainder == 0:
-            base_direction = Direction.WEST
+            base_direction = WEST
         elif remainder == 1:
-            base_direction = Direction.NORTH
+            base_direction = NORTH
         elif remainder == 2:
-            base_direction = Direction.EAST
+            base_direction = EAST
         else:
-            base_direction = Direction.SOUTH
+            base_direction = SOUTH
         if index >= 4:
             start_direction = next_clockwise(base_direction)
         else:

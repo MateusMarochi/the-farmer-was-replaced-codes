@@ -1,5 +1,6 @@
 # Parallel pumpkin monitoring with shared tracker state.
 
+from directions import EAST, NORTH, SOUTH, WEST
 import plantacoes
 
 TARGET_PATCH_SIZE = 6
@@ -8,15 +9,15 @@ STABLE_MEASUREMENTS = 4
 
 def move_to_origin_row():
     while get_pos_y() > 0:
-        move(Direction.SOUTH)
+        move(SOUTH)
 
 
 def move_to_column(column_index):
     move_to_origin_row()
     while get_pos_x() < column_index:
-        move(Direction.EAST)
+        move(EAST)
     while get_pos_x() > column_index:
-        move(Direction.WEST)
+        move(WEST)
 
 
 def ensure_tracker_entry(tracker, key):
@@ -99,11 +100,11 @@ def monitor_column(column_index, field_size, tracker):
     while row_index < field_size:
         evaluate_pumpkin_tile(column_tracker, row_index)
         if row_index < field_size - 1:
-            move(Direction.NORTH)
+            move(NORTH)
         row_index = row_index + 1
     steps_down = field_size - 1
     while steps_down > 0:
-        move(Direction.SOUTH)
+        move(SOUTH)
         steps_down = steps_down - 1
     return True
 

@@ -1,5 +1,6 @@
 # Parallel polyculture routine with reserved sunflower columns.
 
+from directions import EAST, NORTH, SOUTH, WEST
 import plantacoes
 
 requests_queue = []
@@ -81,13 +82,13 @@ def probe_and_record_request(step):
 
 def move_to(target_x, target_y):
     while get_pos_x() < target_x:
-        move(Direction.EAST)
+        move(EAST)
     while get_pos_x() > target_x:
-        move(Direction.WEST)
+        move(WEST)
     while get_pos_y() < target_y:
-        move(Direction.NORTH)
+        move(NORTH)
     while get_pos_y() > target_y:
-        move(Direction.SOUTH)
+        move(SOUTH)
 
 
 def process_tile(step_ref):
@@ -113,16 +114,16 @@ def column_pair_worker(start_column):
         while row < field_size:
             process_tile(step_ref)
             if row < field_size - 1:
-                move(Direction.NORTH)
+                move(NORTH)
             row = row + 1
-        move(Direction.EAST)
+        move(EAST)
         row = 0
         while row < field_size:
             process_tile(step_ref)
             if row < field_size - 1:
-                move(Direction.SOUTH)
+                move(SOUTH)
             row = row + 1
-        move(Direction.WEST)
+        move(WEST)
 
 
 def make_runner(start_column):

@@ -1,5 +1,6 @@
 # Coordinated polyculture routine with shared request queue.
 
+from directions import EAST, NORTH
 import plantacoes
 
 requests_queue = []
@@ -90,9 +91,9 @@ def polyculture_scan():
             if not handled:
                 probe_and_record_request(step)
                 step = step + 1
-            move(Direction.NORTH)
+            move(NORTH)
             row = row + 1
-        move(Direction.EAST)
+        move(EAST)
         column = column + 1
 
 

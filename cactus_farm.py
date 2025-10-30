@@ -1,5 +1,6 @@
 # Parallel cactus sorting routine with consistent naming and helpers.
 
+from directions import EAST, NORTH, SOUTH, WEST
 import plantacoes
 
 PREFERRED_DRONES = (32, 16)
@@ -46,18 +47,18 @@ def move_to_column(target_column):
     # Move horizontally until reaching *target_column*.
 
     while get_pos_x() < target_column:
-        move(Direction.EAST)
+        move(EAST)
     while get_pos_x() > target_column:
-        move(Direction.WEST)
+        move(WEST)
 
 
 def move_to_row(target_row):
     # Move vertically until reaching *target_row*.
 
     while get_pos_y() < target_row:
-        move(Direction.NORTH)
+        move(NORTH)
     while get_pos_y() > target_row:
-        move(Direction.SOUTH)
+        move(SOUTH)
 
 
 def ensure_cactus_here():
@@ -100,27 +101,27 @@ def has_west():
 def compare_vertical(field_size):
     current_value = safe_measure()
     if has_north(field_size):
-        north_value = safe_measure(Direction.NORTH)
+        north_value = safe_measure(NORTH)
         if current_value > north_value:
-            swap(Direction.NORTH)
+            swap(NORTH)
             current_value = safe_measure()
     if has_south():
-        south_value = safe_measure(Direction.SOUTH)
+        south_value = safe_measure(SOUTH)
         if current_value < south_value:
-            swap(Direction.SOUTH)
+            swap(SOUTH)
 
 
 def compare_horizontal(field_size):
     current_value = safe_measure()
     if has_east(field_size):
-        east_value = safe_measure(Direction.EAST)
+        east_value = safe_measure(EAST)
         if current_value > east_value:
-            swap(Direction.EAST)
+            swap(EAST)
             current_value = safe_measure()
     if has_west():
-        west_value = safe_measure(Direction.WEST)
+        west_value = safe_measure(WEST)
         if current_value < west_value:
-            swap(Direction.WEST)
+            swap(WEST)
 
 
 def vertical_pass(field_size):
@@ -129,12 +130,12 @@ def vertical_pass(field_size):
         ensure_cactus_here()
         compare_vertical(field_size)
         if has_north(field_size):
-            move(Direction.NORTH)
+            move(NORTH)
             steps_up = steps_up + 1
         else:
             break
     while steps_up > 0:
-        move(Direction.SOUTH)
+        move(SOUTH)
         steps_up = steps_up - 1
 
 
@@ -144,12 +145,12 @@ def horizontal_pass(field_size):
         ensure_cactus_here()
         compare_horizontal(field_size)
         if has_east(field_size):
-            move(Direction.EAST)
+            move(EAST)
             steps_east = steps_east + 1
         else:
             break
     while steps_east > 0:
-        move(Direction.WEST)
+        move(WEST)
         steps_east = steps_east - 1
 
 

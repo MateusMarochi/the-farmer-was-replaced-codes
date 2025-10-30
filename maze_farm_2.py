@@ -1,5 +1,7 @@
 # Variant treasure hunt with increased spawn count.
 
+from directions import EAST, NORTH, SOUTH, WEST
+
 
 def create_maze():
     clear()
@@ -10,26 +12,26 @@ def create_maze():
 
 
 def next_clockwise(direction):
-    if direction == Direction.NORTH:
-        return Direction.EAST
-    if direction == Direction.EAST:
-        return Direction.SOUTH
-    if direction == Direction.SOUTH:
-        return Direction.WEST
-    if direction == Direction.WEST:
-        return Direction.NORTH
+    if direction == NORTH:
+        return EAST
+    if direction == EAST:
+        return SOUTH
+    if direction == SOUTH:
+        return WEST
+    if direction == WEST:
+        return NORTH
     return direction
 
 
 def next_counter_clockwise(direction):
-    if direction == Direction.NORTH:
-        return Direction.WEST
-    if direction == Direction.WEST:
-        return Direction.SOUTH
-    if direction == Direction.SOUTH:
-        return Direction.EAST
-    if direction == Direction.EAST:
-        return Direction.NORTH
+    if direction == NORTH:
+        return WEST
+    if direction == WEST:
+        return SOUTH
+    if direction == SOUTH:
+        return EAST
+    if direction == EAST:
+        return NORTH
     return direction
 
 
@@ -78,13 +80,13 @@ def treasure_hunt_parallel():
     while index < drone_limit:
         remainder = index % 4
         if remainder == 0:
-            start_direction = Direction.WEST
+            start_direction = WEST
         elif remainder == 1:
-            start_direction = Direction.NORTH
+            start_direction = NORTH
         elif remainder == 2:
-            start_direction = Direction.EAST
+            start_direction = EAST
         else:
-            start_direction = Direction.SOUTH
+            start_direction = SOUTH
         if index % 2 == 0:
             prefer_clockwise = False
         else:

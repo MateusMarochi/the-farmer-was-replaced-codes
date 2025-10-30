@@ -1,5 +1,7 @@
 # Deploy complex pumpkin layouts based on world and drone capacity.
 
+from directions import EAST, NORTH, SOUTH, WEST
+
 
 def move_steps(direction, steps):
     index = 0
@@ -27,12 +29,12 @@ def minipatch_drone():
                     measurement = measure()
                     if measurement != None:
                         bottom_measure = measurement
-                move(Direction.EAST)
+                move(EAST)
                 column = column + 1
-            move_steps(Direction.WEST, 4)
-            move(Direction.NORTH)
+            move_steps(WEST, 4)
+            move(NORTH)
             row = row + 1
-        move_steps(Direction.SOUTH, 4)
+        move_steps(SOUTH, 4)
         if top_measure == bottom_measure and can_harvest():
             harvest()
 
@@ -56,12 +58,12 @@ def patch_drone():
                     measurement = measure()
                     if measurement != None:
                         bottom_measure = measurement
-                move(Direction.EAST)
+                move(EAST)
                 column = column + 1
-            move_steps(Direction.WEST, 6)
-            move(Direction.NORTH)
+            move_steps(WEST, 6)
+            move(NORTH)
             row = row + 1
-        move_steps(Direction.SOUTH, 6)
+        move_steps(SOUTH, 6)
         if top_measure == bottom_measure and can_harvest():
             harvest()
 
@@ -72,7 +74,7 @@ def prep_drone():
     while step < field_size:
         if get_ground_type() != Grounds.SOIL:
             till()
-        move(Direction.NORTH)
+        move(NORTH)
         step = step + 1
 
 
@@ -87,7 +89,7 @@ def horizontal_sunflower_drone():
             if get_ground_type() != Grounds.SOIL:
                 till()
             plant(Entities.SUNFLOWER)
-            move(Direction.EAST)
+            move(EAST)
             step = step + 1
 
 
@@ -102,7 +104,7 @@ def vertical_sunflower_drone():
             if get_ground_type() != Grounds.SOIL:
                 till()
             plant(Entities.SUNFLOWER)
-            move(Direction.NORTH)
+            move(NORTH)
             step = step + 1
 
 
@@ -125,12 +127,12 @@ def maintain_minipatch_cycle():
                     measurement = measure()
                     if measurement != None:
                         bottom_measure = measurement
-                move(Direction.EAST)
+                move(EAST)
                 column = column + 1
-            move_steps(Direction.WEST, 4)
-            move(Direction.NORTH)
+            move_steps(WEST, 4)
+            move(NORTH)
             row = row + 1
-        move_steps(Direction.SOUTH, 4)
+        move_steps(SOUTH, 4)
         if top_measure == bottom_measure and can_harvest():
             harvest()
 
@@ -139,40 +141,40 @@ def deploy_full_layout(field_size):
     column = 0
     while column < field_size - 1:
         spawn_drone(prep_drone)
-        move(Direction.EAST)
+        move(EAST)
         column = column + 1
     spawn_drone(prep_drone)
-    move(Direction.EAST)
+    move(EAST)
     block = 0
     while block < 4:
         spawn_drone(patch_drone)
-        move_steps(Direction.EAST, 6)
+        move_steps(EAST, 6)
         spawn_drone(vertical_sunflower_drone)
-        move(Direction.EAST)
+        move(EAST)
         block = block + 1
     spawn_drone(minipatch_drone)
-    move_steps(Direction.EAST, 4)
-    move_steps(Direction.NORTH, 6)
+    move_steps(EAST, 4)
+    move_steps(NORTH, 6)
     spawn_drone(horizontal_sunflower_drone)
-    move(Direction.NORTH)
+    move(NORTH)
     row_block = 0
     while row_block < 3:
         column_block = 0
         while column_block < 4:
             spawn_drone(patch_drone)
-            move_steps(Direction.EAST, 6)
-            move(Direction.EAST)
+            move_steps(EAST, 6)
+            move(EAST)
             column_block = column_block + 1
         spawn_drone(minipatch_drone)
-        move_steps(Direction.EAST, 4)
-        move_steps(Direction.NORTH, 6)
+        move_steps(EAST, 4)
+        move_steps(NORTH, 6)
         spawn_drone(horizontal_sunflower_drone)
-        move(Direction.NORTH)
+        move(NORTH)
         row_block = row_block + 1
     tail = 0
     while tail < 3:
         spawn_drone(minipatch_drone)
-        move_steps(Direction.EAST, 7)
+        move_steps(EAST, 7)
         tail = tail + 1
 
 
@@ -181,9 +183,9 @@ def deploy_compact_layout(field_size):
     while column < field_size:
         spawn_drone(prep_drone)
         if column < field_size - 1:
-            move(Direction.EAST)
+            move(EAST)
         column = column + 1
-    move_steps(Direction.WEST, field_size - 1)
+    move_steps(WEST, field_size - 1)
     row_count = 4
     column_count = 2
     patch_width = 6
@@ -194,23 +196,23 @@ def deploy_compact_layout(field_size):
         column_index = 0
         while column_index < column_count:
             spawn_drone(patch_drone)
-            move_steps(Direction.EAST, patch_width)
+            move_steps(EAST, patch_width)
             if row_index == 0 and column_index < column_count:
                 spawn_drone(vertical_sunflower_drone)
             if column_index < column_count - 1:
-                move_steps(Direction.EAST, gap)
+                move_steps(EAST, gap)
             column_index = column_index + 1
         if row_index == 0 or row_index == 2:
             spawn_drone(minipatch_drone)
-        move_steps(Direction.WEST, row_width)
+        move_steps(WEST, row_width)
         if row_index < row_count - 1:
-            move_steps(Direction.NORTH, patch_width)
+            move_steps(NORTH, patch_width)
             if row_index == 0 or row_index == 2:
                 spawn_drone(horizontal_sunflower_drone)
-            move(Direction.NORTH)
+            move(NORTH)
         row_index = row_index + 1
     spawn_drone(minipatch_drone)
-    move_steps(Direction.SOUTH, (row_count - 1) * (patch_width + 1))
+    move_steps(SOUTH, (row_count - 1) * (patch_width + 1))
 
 
 def main():

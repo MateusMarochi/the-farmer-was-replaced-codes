@@ -10,3 +10,4 @@
 - Formatar todos os arquivos `.py` utilizando o Black antes de concluir o trabalho.
 - `from game_api import (...)` só deve ser usado temporariamente para compilar ou testar localmente; remova qualquer import desse tipo no arquivo final.
 - Para comentar código em Python, utilize apenas linhas iniciadas por `#`; não empregue strings multilinha (por exemplo, `"""comentário"""`).
+- As estratégias não devem depender de `Direction.*`; utilize constantes próprias de direção para comandar os drones.

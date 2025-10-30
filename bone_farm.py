@@ -1,5 +1,7 @@
 # Dinosaur hat sweep strategy with consistent movement helpers.
 
+from directions import EAST, NORTH, SOUTH, WEST
+
 
 def dinosaur_safe_move(direction):
     # Move in *direction* or toggle hats when blocked.
@@ -16,9 +18,9 @@ def travel_vertical(target_row):
 
     while get_pos_y() != target_row:
         if target_row > get_pos_y():
-            dinosaur_safe_move(Direction.NORTH)
+            dinosaur_safe_move(NORTH)
         else:
-            dinosaur_safe_move(Direction.SOUTH)
+            dinosaur_safe_move(SOUTH)
 
 
 def travel_horizontal(target_column):
@@ -26,9 +28,9 @@ def travel_horizontal(target_column):
 
     while get_pos_x() != target_column:
         if target_column > get_pos_x():
-            dinosaur_safe_move(Direction.EAST)
+            dinosaur_safe_move(EAST)
         else:
-            dinosaur_safe_move(Direction.WEST)
+            dinosaur_safe_move(WEST)
 
 
 def sweep_columns(field_size):
@@ -42,7 +44,7 @@ def sweep_columns(field_size):
             target_row = 1
         travel_vertical(target_row)
         if column_index < field_size - 1:
-            dinosaur_safe_move(Direction.EAST)
+            dinosaur_safe_move(EAST)
         column_index = column_index + 1
 
 

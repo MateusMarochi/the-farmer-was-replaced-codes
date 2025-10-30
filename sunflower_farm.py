@@ -1,20 +1,21 @@
 # Sunflower farming with column workers sized to available drones.
 
+from directions import EAST, NORTH, SOUTH, WEST
 import plantacoes
 
 
 def move_to_column(target_column):
     while get_pos_x() < target_column:
-        move(Direction.EAST)
+        move(EAST)
     while get_pos_x() > target_column:
-        move(Direction.WEST)
+        move(WEST)
 
 
 def move_to_row(target_row):
     while get_pos_y() < target_row:
-        move(Direction.NORTH)
+        move(NORTH)
     while get_pos_y() > target_row:
-        move(Direction.SOUTH)
+        move(SOUTH)
 
 
 def maintain_sunflower_tile():
@@ -36,7 +37,7 @@ def sunflower_column_worker(column_index, field_size):
         while row < field_size:
             maintain_sunflower_tile()
             if row < field_size - 1:
-                move(Direction.NORTH)
+                move(NORTH)
             row = row + 1
         move_to_row(0)
 
