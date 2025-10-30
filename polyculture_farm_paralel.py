@@ -18,6 +18,8 @@ def plant_entity(ptype):
 		plantacoes.plant_carrot()
 	elif ptype == Entities.Bush:
 		plant_bush_fallback()
+	elif ptype == Entities.Sunflower:              # <-- suporte explícito a sunflower
+		plantacoes.plant_sunflower()
 	else:
 		plant(ptype)
 
@@ -37,7 +39,6 @@ def atender_pedidos_no_local():
 	y = get_pos_y()
 	encontrou = False
 
-	# percorre cópia simples para poder remover enquanto itera
 	copia = []
 	for item in pedidos:
 		copia.append(item)
@@ -48,7 +49,7 @@ def atender_pedidos_no_local():
 			plant_entity(ptype)
 			if can_harvest():
 				harvest()
-			pedidos.remove(triple)  # remove apenas o atendido
+			pedidos.remove(triple)
 			encontrou = True
 
 	return encontrou
@@ -96,9 +97,20 @@ def move_to(x_target, y_target):
 # ------------------- Trabalho em célula (colhe/atende/sonda) -------------------
 
 def processar_celula(step_ref):
+	# sempre colhe antes se possível
 	if can_harvest():
 		harvest()
 
+	# =================== RESERVA DAS DUAS ÚLTIMAS COLUNAS PARA SUNFLOWERS ===================
+	size = get_world_size()
+	x = get_pos_x()
+	if x >= size - 2:  # colunas (size-2) e (size-1)
+		plant_entity(Entities.Sunflower)
+		# nessas colunas não participamos do sistema de pedidos/sondagens
+		return
+	# ========================================================================================
+
+	# fora das duas últimas colunas, segue a lógica normal de policultura coordenada
 	handled = atender_pedidos_no_local()
 	if not handled:
 		sondar_e_registrar_pedido(step_ref[0])
@@ -108,10 +120,8 @@ def processar_celula(step_ref):
 
 def worker_duas_colunas(col_inicio):
 	size = get_world_size()
-	# garante início na base da primeira coluna do par
 	move_to(col_inicio, 0)
-
-	step_ref = [0]  # contagem mutável simples para sondas
+	step_ref = [0]
 
 	while True:
 		# Sobe na coluna col_inicio
@@ -135,7 +145,6 @@ def worker_duas_colunas(col_inicio):
 
 		# Volta para a coluna inicial
 		move(West)
-		# Repete o ciclo
 
 # ------------------- Envoltório para spawn_drone (sem lambda) -------------------
 
@@ -150,24 +159,19 @@ def iniciar_11_drones_em_22x22():
 	size = get_world_size()
 	# segurança: esperamos 22x22
 	if size != 22:
-		# ainda assim, posiciona de forma proporcional (pares de colunas)
 		pass
 
 	drones = []
 	i = 0
 	while i < 11:
-		col = i * 2  # 0, 2, 4, ..., 20
+		col = i * 2  # 0, 2, 4, ..., 20 (20 e 21 serão só sunflowers via processar_celula)
 		func = make_runner_duas_colunas(col)
 		d = spawn_drone(func)
 		if d != None:
 			drones.append(d)
 		i = i + 1
 
-	# Não esperamos terminar: cada worker é um loop infinito cobrindo seu par de colunas.
-	# Mantemos o processo principal ativo com um loop inofensivo.
 	while True:
-		# opcional: o processo principal pode também ajudar, mas aqui só mantemos vivo.
-		# Um pequeno "ping" de posição evita ocioso total em alguns ambientes:
 		move_to(0, 0)
 		move_to(0, 0)
 
