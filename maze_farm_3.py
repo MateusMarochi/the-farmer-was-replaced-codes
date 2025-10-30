@@ -1,11 +1,19 @@
+# ------------------- Estado compartilhado -------------------
+
+
+MAZE_READY = False
+
+
 # ------------------- Geração do labirinto (SEM chamar hunt aqui) -------------------
 
 
 def create_maze():
+    global MAZE_READY
     clear()
     plant(Entities.Bush)
     substance = get_world_size() * 2 ** (num_unlocked(Unlocks.Mazes) - 1)
     use_item(Items.Weird_Substance, substance)
+    MAZE_READY = True
     return True
 
 
@@ -64,154 +72,214 @@ def next_ccw(d):
     return d
 
 
+# ------------------- Posicionamento auxiliar -------------------
+
+
+def move_to_position(target_x, target_y):
+    current_x = get_pos_x()
+    while current_x < target_x:
+        moved = move(East)
+        if not moved:
+            return False
+        current_x = get_pos_x()
+    while current_x > target_x:
+        moved = move(West)
+        if not moved:
+            return False
+        current_x = get_pos_x()
+
+    current_y = get_pos_y()
+    while current_y < target_y:
+        moved = move(South)
+        if not moved:
+            return False
+        current_y = get_pos_y()
+    while current_y > target_y:
+        moved = move(North)
+        if not moved:
+            return False
+        current_y = get_pos_y()
+
+    return True
+
+
+def compute_edge_offsets(radius):
+    offsets = []
+    if radius <= 0:
+        offsets.append(0)
+        return offsets
+    steps = 7
+    index = 0
+    while index <= steps:
+        numerator = 2 * radius * index
+        base = numerator // steps
+        offset = base - radius
+        offsets.append(offset)
+        index = index + 1
+    return offsets
+
+
+def clamp_edge_coordinate(value, low_limit, high_limit):
+    if value < low_limit:
+        return low_limit
+    if value > high_limit:
+        return high_limit
+    return value
+
+
+def build_distribution_positions(center_x, center_y, radius):
+    positions = []
+    if radius <= 0:
+        single = (center_x, center_y)
+        positions.append(single)
+        return positions
+
+    offsets = compute_edge_offsets(radius)
+    top_y = center_y - radius
+    bottom_y = center_y + radius
+    left_x = center_x - radius
+    right_x = center_x + radius
+
+    count = len(offsets)
+    index = 0
+    while index < count:
+        value = offsets[index]
+        x_pos = center_x + value
+        positions.append((x_pos, top_y))
+        index = index + 1
+
+    index = 0
+    while index < count:
+        value = offsets[index]
+        x_pos = center_x + value
+        positions.append((x_pos, bottom_y))
+        index = index + 1
+
+    index = 0
+    while index < count:
+        value = offsets[index]
+        y_pos = center_y + value
+        adjusted = y_pos
+        if adjusted == top_y:
+            adjusted = adjusted + 1
+        elif adjusted == bottom_y:
+            adjusted = adjusted - 1
+        adjusted = clamp_edge_coordinate(adjusted, top_y, bottom_y)
+        positions.append((left_x, adjusted))
+        index = index + 1
+
+    index = 0
+    while index < count:
+        value = offsets[index]
+        y_pos = center_y + value
+        adjusted = y_pos
+        if adjusted == top_y:
+            adjusted = adjusted + 1
+        elif adjusted == bottom_y:
+            adjusted = adjusted - 1
+        adjusted = clamp_edge_coordinate(adjusted, top_y, bottom_y)
+        positions.append((right_x, adjusted))
+        index = index + 1
+
+    return positions
+
+
+def determine_start_direction(center_x, center_y, target_x, target_y):
+    if target_x > center_x:
+        return East
+    if target_x < center_x:
+        return West
+    if target_y > center_y:
+        return South
+    if target_y < center_y:
+        return North
+    return North
+
+
+def wait_cycles(amount):
+    waited = 0
+    while waited < amount:
+        get_pos_x()
+        waited = waited + 1
+    return True
+
+
+def idle_until_maze_ready():
+    global MAZE_READY
+    while not MAZE_READY:
+        get_pos_y()
+    return True
+
+
 # ------------------- Algoritmo BASE da caça (worker do drone) -------------------
-# Parâmetros extras, simples:
-#   start_spin  -> 0..3 giros de 90° antes de começar (espalha heading)
-#   turn_every  -> só vira após este número de MOVES bem-sucedidos (>=1)
-#   phase_delay -> após esta quantidade de movimentos, habilita nova fase
-# Mantém:
-#   start_dir, prefer_cw, warmup
-
-
 def treasure_hunt_worker(
+    index,
+    target_x,
+    target_y,
     start_dir,
     prefer_cw,
-    warmup,
-    start_spin,
-    turn_every,
-    phase_delay,
-    phase_turn_every,
-    phase_flip_preference,
-    stuck_escape_threshold,
-    extra_spins,
+    delay_cycles,
 ):
+    wait_cycles(delay_cycles)
+    move_to_position(target_x, target_y)
+    idle_until_maze_ready()
+
     dir = start_dir
-
-    # giros iniciais (espalha heading)
-    s0 = 0
-    while s0 < start_spin:
-        if prefer_cw:
-            dir = next_cw(dir)
-        else:
-            dir = next_ccw(dir)
-        s0 = s0 + 1
-
-    # aquecimento simples: anda alguns passos na direção atual
-    s = 0
-    while s < warmup:
-        move(dir)
-        s = s + 1
-
     x = get_pos_x()
     y = get_pos_y()
 
-    moves_since_turn = 0  # controla quando aplicar a virada complementar
-    total_moves = 0
-    phase_applied = False
-    current_prefer_cw = prefer_cw
-    current_turn_every = turn_every
-    blocked_streak = 0
-
     while True:
-        move(dir)
-
-        x2 = get_pos_x()
-        y2 = get_pos_y()
-
-        if x == x2 and y == y2:
-            # BLOQUEADO -> vira para a parede preferida
-            if current_prefer_cw:
-                dir = next_cw(dir)
-            else:
-                dir = next_ccw(dir)
-
-            # Empurrão pós-bloqueio: tenta um passo imediato após girar
-            move(dir)
-            xb = get_pos_x()
-            yb = get_pos_y()
-            if xb != x or yb != y:
-                # saiu do lugar; atualiza e zera o contador de reta
-                x = xb
-                y = yb
-                moves_since_turn = 1  # já contamos esse avanço
-                # aplica a virada complementar apenas quando atingir turn_every
-                if moves_since_turn >= current_turn_every:
-                    if current_prefer_cw:
-                        dir = next_ccw(dir)
-                    else:
-                        dir = next_cw(dir)
-                    moves_since_turn = 0
-                blocked_streak = 0
-                total_moves = total_moves + 1
-            else:
-                blocked_streak = blocked_streak + 1
-        else:
-            # MOVEU -> atualiza e contabiliza o avanço reto
-            x = x2
-            y = y2
-            moves_since_turn = moves_since_turn + 1
-            blocked_streak = 0
-            total_moves = total_moves + 1
-
-            if moves_since_turn >= current_turn_every:
-                # aplica a virada complementar padrão
-                if current_prefer_cw:
-                    dir = next_ccw(dir)
-                else:
-                    dir = next_cw(dir)
-                moves_since_turn = 0
-
-        if not phase_applied and phase_delay > 0 and total_moves >= phase_delay:
-            phase_applied = True
-            if phase_flip_preference:
-                current_prefer_cw = not current_prefer_cw
-            if phase_turn_every > 0:
-                current_turn_every = phase_turn_every
-
-        if stuck_escape_threshold > 0 and blocked_streak >= stuck_escape_threshold:
-            spin_count = 0
-            while spin_count < extra_spins:
-                if current_prefer_cw:
-                    dir = next_ccw(dir)
-                else:
-                    dir = next_cw(dir)
-                spin_count = spin_count + 1
-            blocked_streak = 0
-            moves_since_turn = 0
-
         if get_entity_type() == Entities.Treasure:
             harvest()
             return True
+
+        side_dir = next_cw(dir)
+        if not prefer_cw:
+            side_dir = next_ccw(dir)
+
+        move(side_dir)
+        sx = get_pos_x()
+        sy = get_pos_y()
+        if sx != x or sy != y:
+            dir = side_dir
+            x = sx
+            y = sy
+            continue
+
+        move(dir)
+        fx = get_pos_x()
+        fy = get_pos_y()
+        if fx != x or fy != y:
+            x = fx
+            y = fy
+            continue
+
+        if prefer_cw:
+            dir = next_ccw(dir)
+        else:
+            dir = next_cw(dir)
 
 
 # ------------------- Envoltório para spawn_drone (sem lambda) -------------------
 
 
 def make_runner(
+    index,
+    target_x,
+    target_y,
     start_dir,
     prefer_cw,
-    warmup,
-    start_spin,
-    turn_every,
-    phase_delay,
-    phase_turn_every,
-    phase_flip_preference,
-    stuck_escape_threshold,
-    extra_spins,
+    delay_cycles,
 ):
     # Retorna a função que o drone deve executar com os parâmetros fixados
     def run():
         return treasure_hunt_worker(
+            index,
+            target_x,
+            target_y,
             start_dir,
             prefer_cw,
-            warmup,
-            start_spin,
-            turn_every,
-            phase_delay,
-            phase_turn_every,
-            phase_flip_preference,
-            stuck_escape_threshold,
-            extra_spins,
+            delay_cycles,
         )
 
     return run
@@ -221,92 +289,63 @@ def make_runner(
 
 
 def treasure_hunt_parallel():
+    global MAZE_READY
+    MAZE_READY = False
+
     move_to_center()
+    center_x = get_pos_x()
+    center_y = get_pos_y()
+
+    world_size = get_world_size()
+    radius = world_size // 2
+    if radius > 1:
+        radius = radius - 1
+
+    positions = build_distribution_positions(center_x, center_y, radius)
 
     drones = []
 
-    world_size = get_world_size()
     max_slots = max_drones()
     if max_slots < 1:
         max_slots = 1
 
-    i = 0
-    while i < max_slots:
-        # Direções iniciais: W,N,E,S e rotaciona no segundo bloco de 4
-        index_mod = i % 4
-        if index_mod == 0:
-            base_dir = West
-        elif index_mod == 1:
-            base_dir = North
-        elif index_mod == 2:
-            base_dir = East
+    total_positions = len(positions)
+    limit = max_slots
+    if limit > total_positions:
+        limit = total_positions
+
+    index = 0
+    while index < limit:
+        target = positions[index]
+        target_x = target[0]
+        target_y = target[1]
+        start_dir = determine_start_direction(center_x, center_y, target_x, target_y)
+
+        if index % 2 == 0:
+            prefer_cw = True
         else:
-            base_dir = South
+            prefer_cw = False
 
-        if i >= 4:
-            start_dir = next_cw(base_dir)
-        else:
-            start_dir = base_dir
-
-        # alterna preferência de giro para variar o "wall follower"
-        if i % 2 == 0:
-            prefer_cw = False  # esquerda (bloq CCW, move CW)
-        else:
-            prefer_cw = True  # direita (bloq CW, move CCW)
-
-        # warmup pequeno e diferente por drone
-        warmup = i % 4  # 0..3
-
-        # novos parâmetros simples:
-        start_spin = (i // 2) % 4  # 0..3 (muda heading inicial com giros)
-        # turn_every: 1 mantém base; 2 ou 3 dá mais reta antes de virar
-        remainder = i % 3
-        if remainder == 0:
-            turn_every = 1
-        elif remainder == 1:
-            turn_every = 2
-        else:
-            turn_every = 3
-
-        phase_delay = 0
-        phase_turn_every = 0
-        phase_flip_preference = False
-        stuck_escape_threshold = 0
-        extra_spins = 0
-
-        if i >= 3:
-            phase_delay = world_size * (i - 2)
-            if phase_delay < world_size:
-                phase_delay = world_size
-
-            phase_turn_every = turn_every + 1
-            if phase_turn_every > 4:
-                phase_turn_every = 4
-
-            if i % 2 == 1:
-                phase_flip_preference = True
-
-            stuck_escape_threshold = 2 + (i % 3)
-            extra_spins = 1 + (i % 2)
+        delay = index % 8
 
         func = make_runner(
+            index,
+            target_x,
+            target_y,
             start_dir,
             prefer_cw,
-            warmup,
-            start_spin,
-            turn_every,
-            phase_delay,
-            phase_turn_every,
-            phase_flip_preference,
-            stuck_escape_threshold,
-            extra_spins,
+            delay,
         )
         d = spawn_drone(func)
         if d != None:
             drones.append(d)
         else:
             break
-        i = i + 1
+        index = index + 1
+
+    created = create_maze()
+    if not created:
+        return False
 
     found = False
     while not found:
@@ -328,11 +367,9 @@ def treasure_hunt_parallel():
 
 def main():
     while True:
-        ok = create_maze()
-        if ok:
-            got = treasure_hunt_parallel()
-            if got:
-                continue
+        got = treasure_hunt_parallel()
+        if got:
+            continue
 
 
 main()
